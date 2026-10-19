@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Picture Graph Playground</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&family=Baloo+2:wght@600;800&display=swap">
+<style>
+/* Layout: builder panel (left) + sticker-board graph (right), stacks on phones; quiz strip below graph */
+:root{
+  --bg:#fff7fb; --paper:#ffffff; --ink:#3d3550; --soft:#7a7090;
+  --pink:#ffc9de; --mint:#c6f1dc; --sky:#c9e6ff; --lemon:#fff1a8; --lilac:#e3d4ff;
+  --accent:#ff7aa8; --accent-ink:#ffffff; --line:#e8dcef; --good:#2e9e6b; --bad:#d9576b;
+  --f-display:"Baloo 2","Comic Sans MS","Comic Neue",cursive;
+  --f-body:"Comic Neue","Comic Sans MS","Chalkboard SE",cursive;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#211d2b; --paper:#2c2738; --ink:#f5eefc; --soft:#b9afcc;
+  --pink:#5b3448; --mint:#2b4d3f; --sky:#2b4058; --lemon:#4f4826; --lilac:#3f3561;
+  --accent:#ff8fb6; --accent-ink:#2a1420; --line:#433b52; --good:#6fd7a4; --bad:#ff8e9e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#211d2b; --paper:#2c2738; --ink:#f5eefc; --soft:#b9afcc;
+  --pink:#5b3448; --mint:#2b4d3f; --sky:#2b4058; --lemon:#4f4826; --lilac:#3f3561;
+  --accent:#ff8fb6; --accent-ink:#2a1420; --line:#433b52; --good:#6fd7a4; --bad:#ff8e9e; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:17px;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background-image:radial-gradient(var(--line) 1.5px,transparent 1.5px);background-size:22px 22px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.8rem,5vw,2.6rem);margin:0;line-height:1.05;text-wrap:balance}
+h2{font-family:var(--f-display);font-size:1.25rem;margin:0}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px}
+header p{margin:0;color:var(--soft)}
+.grid{display:grid;grid-template-columns:minmax(0,370px) minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--paper);border:3px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:14px;min-width:0}
+.step{display:grid;gap:8px;padding:12px;border-radius:16px}
+.step:nth-of-type(1){background:var(--pink)} .step:nth-of-type(2){background:var(--sky)}
+.step:nth-of-type(3){background:var(--lemon)} .step:nth-of-type(4){background:var(--mint)} .step:nth-of-type(5){background:var(--lilac)}
+.step h2 .n{display:inline-grid;place-items:center;width:1.6em;height:1.6em;border-radius:50%;background:var(--paper);margin-right:6px;font-size:.9em}
+label{font-weight:700;font-size:.92rem}
+input[type=text],input[type=number]{font:inherit;color:var(--ink);background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:7px 10px;width:100%;min-width:0}
+input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cat{display:grid;grid-template-columns:minmax(0,1fr) 90px 38px;gap:6px;align-items:center}
+button{font:inherit;font-weight:700;cursor:pointer;border:none;border-radius:999px;padding:8px 14px;background:var(--paper);color:var(--ink);box-shadow:0 3px 0 var(--line);transition:transform .1s}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line)}
+.primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 3px 0 color-mix(in srgb,var(--accent) 60%,#000)}
+.x{padding:6px 0;width:38px;background:var(--paper)}
+.picker{position:relative}
+#pickBtn{display:inline-flex;align-items:center;gap:8px}
+.pop{position:absolute;z-index:5;top:calc(100% + 8px);left:0;width:min(330px,calc(100vw - 48px));background:var(--paper);border:3px solid var(--accent);border-radius:18px;padding:10px;display:grid;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.tabs{display:flex;gap:4px;overflow-x:auto}
+.tabs button{font-size:1.3rem;padding:4px 9px;box-shadow:none;background:var(--bg)}
+.tabs button[aria-selected=true]{background:var(--lemon)}
+.emojis{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;max-height:220px;overflow-y:auto}
+.emojis button{font-size:1.5rem;padding:4px 0;line-height:1.2;box-shadow:none;background:transparent;border-radius:10px}
+.emojis button:hover{background:var(--lemon)}
+.emojis button[aria-pressed=true]{background:var(--accent);box-shadow:0 0 0 3px var(--paper),0 0 0 5px var(--accent)}
+.seg{display:inline-flex;background:var(--paper);border-radius:999px;padding:3px;gap:3px}
+.seg button{box-shadow:none;padding:6px 12px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.toggle{display:flex;gap:8px;align-items:center;font-weight:700}
+.toggle input{width:22px;height:22px;accent-color:var(--accent)}
+.warn{color:var(--bad);font-weight:700;font-size:.9rem;margin:0}
+/* graph board */
+.board{background:var(--paper);border:3px solid var(--line);border-radius:22px;padding:18px;min-width:0;display:grid;gap:12px}
+.gtitle{font-family:var(--f-display);font-size:clamp(1.4rem,3.5vw,2rem);text-align:center;margin:0}
+.scroller{overflow-x:auto}
+.chart{display:grid;grid-template-columns:auto 1fr;gap:8px;min-width:min-content}
+.ylab{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;font-weight:700;color:var(--soft);align-self:center}
+.cols{display:flex;align-items:flex-end;gap:10px;border-left:4px solid var(--ink);border-bottom:4px solid var(--ink);padding:10px 10px 0;min-height:240px}
+.col{display:flex;flex-direction:column-reverse;align-items:center;gap:2px;min-width:64px;flex:1;padding-bottom:4px;border-radius:12px 12px 0 0;cursor:pointer}
+.col:hover{background:color-mix(in srgb,var(--lemon) 60%,transparent)}
+.col.sel{background:var(--lemon)}
+.sym{font-size:var(--sz,2.1rem);line-height:1.15;width:1.2em;text-align:center;display:block;animation:pop .35s both}
+.sym.half{clip-path:inset(0 50% 0 0)}
+@keyframes pop{from{transform:scale(0)}70%{transform:scale(1.2)}}
+@media (prefers-reduced-motion:reduce){.sym{animation:none}}
+.count{font-weight:700;font-size:.95rem;background:var(--mint);border-radius:999px;padding:1px 10px;margin-top:4px;font-variant-numeric:tabular-nums}
+.xcats{display:flex;gap:10px;padding:6px 10px 0}
+.xcats div{min-width:64px;flex:1;text-align:center;font-weight:700;overflow-wrap:anywhere}
+.xlab{text-align:center;font-weight:700;color:var(--soft)}
+.key{justify-self:center;display:flex;align-items:center;gap:10px;border:3px dashed var(--accent);border-radius:16px;padding:8px 16px;font-weight:700;font-size:1.1rem;flex-wrap:wrap;justify-content:center}
+.key .sym{display:inline;font-size:1.8rem;animation:none}
+.say{background:var(--sky);border-radius:16px;padding:10px 14px;font-size:1.05rem;min-height:2.6em}
+/* quiz */
+.quiz{background:var(--paper);border:3px solid var(--line);border-radius:22px;padding:16px;display:grid;gap:10px}
+.qtext{font-size:1.2rem;font-weight:700;margin:0}
+.fb{font-weight:700;margin:0;min-height:1.4em}
+.fb.ok{color:var(--good)} .fb.no{color:var(--bad)}
+.prog{font-weight:700;font-variant-numeric:tabular-nums}
+.bar{height:12px;border-radius:999px;background:var(--bg);overflow:hidden}
+.bar div{height:100%;width:0;background:var(--good);transition:width .4s}
+.choice[aria-pressed=true]{background:var(--lemon);box-shadow:0 0 0 3px var(--accent)}
+.explain{background:var(--mint);border-radius:16px;padding:10px 14px;display:grid;gap:4px}
+.eq{font-size:1.25rem;font-weight:700;font-variant-numeric:tabular-nums}
+.done{background:var(--lemon);border-radius:16px;padding:14px;font-size:1.2rem;font-weight:700;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>🎨 Picture Graph Playground</h1>
+    <p>Build a picture graph, then read it like a detective!</p>
+  </header>
+
+  <div class="grid">
+    <form class="panel" id="builder" autocomplete="off">
+      <div class="step"><h2><span class="n">1</span>Title</h2>
+        <input type="text" id="title" value="Our Favourite Fruits">
+      </div>
+      <div class="step"><h2><span class="n">2</span>Labels</h2>
+        <label for="xl">Bottom (x-axis)</label><input type="text" id="xl" value="Fruit">
+        <label for="yl">Side (y-axis)</label><input type="text" id="yl" value="Number of pupils">
+      </div>
+      <div class="step"><h2><span class="n">3</span>Categories and numbers</h2>
+        <div id="cats" style="display:grid;gap:6px"></div>
+        <button type="button" id="addCat">➕ Add a category</button>
+      </div>
+      <div class="step"><h2><span class="n">4</span>The key</h2>
+        <div class="row"><span style="font-weight:700">Each picture stands for</span>
+          <div class="seg" id="keySeg"></div></div>
+        <div class="row" id="customRow" hidden><label for="kval">Other:</label><input type="number" id="kval" min="1" max="100" value="3" style="width:90px"></div>
+        <label class="toggle"><input type="checkbox" id="halves" checked> Allow half pictures</label>
+        <p class="warn" id="warn"></p>
+      </div>
+      <div class="step"><h2><span class="n">5</span>Picture</h2>
+        <div class="picker">
+          <button type="button" id="pickBtn" aria-haspopup="true" aria-expanded="false"><span id="pickCur" style="font-size:1.6rem">🍎</span> Choose a picture ▾</button>
+          <div class="pop" id="pop" hidden>
+            <div class="tabs" id="tabs" role="tablist"></div>
+            <div class="emojis" id="emojis"></div>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div style="display:grid;gap:18px;min-width:0">
+      <section class="board" aria-live="polite">
+        <div class="row" style="justify-content:space-between">
+          <label class="toggle"><input type="checkbox" id="showNum"> Show numbers</label>
+          <button type="button" id="randomise">🎲 Surprise data</button>
+        </div>
+        <p class="gtitle" id="gTitle"></p>
+        <div class="scroller">
+          <div class="chart">
+            <div class="ylab" id="gY"></div>
+            <div>
+              <div class="cols" id="cols"></div>
+              <div class="xcats" id="xcats"></div>
+              <div class="xlab" id="gX"></div>
+            </div>
+          </div>
+        </div>
+        <div class="key" id="key"></div>
+        <div class="say" id="say">👆 Tap a column to count it!</div>
+      </section>
+
+      <section class="quiz">
+        <div class="row" style="justify-content:space-between"><h2>🕵️ Graph Detective</h2><span class="prog" id="prog"></span></div>
+        <div class="bar"><div id="barFill"></div></div>
+        <p class="qtext" id="qtext"></p>
+        <div class="row" id="qinput">
+          <input type="number" id="qans" style="width:120px" aria-label="Your answer">
+          <div class="row" id="qchoices"></div>
+        </div>
+        <div class="row" id="qbtns">
+          <button type="button" class="primary" id="qcheck">✔ Check</button>
+          <button type="button" id="qshow">👀 Show answer</button>
+          <button type="button" id="qnext">➡ New question</button>
+        </div>
+        <p class="fb" id="fb"></p>
+        <div class="explain" id="explain" hidden></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+const EMOJI_SETS={
+  "🍎":"🍎🍌🍓🍇🍉🍊🍍🥭🍒🍑🥕🌽🍞🍪🍩🍦🍰🧁🍕🍔🍟🍫🍬🥛",
+  "🐶":"🐶🐱🐰🐻🐼🐨🐯🦁🐮🐷🐸🐵🐔🐧🐦🐟🐢🐞🦋🐝🐘🦒🐬🦄",
+  "⚽":"⚽🏀🏈⚾🎾🏐🏓🏸🎯🪁🛹🚲🎨🎹🎸🥁🎮🧩🎲🪀🧸🎈🎁🏆",
+  "🚗":"🚗🚌🚕🚓🚑🚒🚚🚲🛴🚀✈️🚁🚢⛵🚂🚇🏠🏫🏥🌳🌸🌻🌈☀️",
+  "⭐":"⭐❤️💙💚💛💜🔴🟢🔵🟡🟣⚪✏️📚📏✂️🎒👕👟🧢🌂⏰💎🪙"};
+const KEYS=[1,2,5,10,"other"];
+const S={cats:[["Apple",6],["Banana",4],["Grapes",8],["Mango",3]],key:2,custom:3,emoji:"🍎",score:0,q:null};
+const $=id=>document.getElementById(id);
+
+function keyVal(){return S.key==="other"?Math.max(1,parseInt($("kval").value)||1):S.key}
+
+function renderCats(){
+  const box=$("cats");box.innerHTML="";
+  S.cats.forEach((c,i)=>{
+    const d=document.createElement("div");d.className="cat";
+    d.innerHTML=`<input type="text" id="cn${i}" aria-label="Category ${i+1} name" value="${c[0].replace(/"/g,"&quot;")}"><input type="number" id="cv${i}" min="0" max="200" aria-label="Number for category ${i+1}" value="${c[1]}"><button type="button" class="x" aria-label="Remove">✖</button>`;
+    d.querySelector("#cn"+i).oninput=e=>{S.cats[i][0]=e.target.value;draw()};
+    d.querySelector("#cv"+i).oninput=e=>{S.cats[i][1]=Math.max(0,parseInt(e.target.value)||0);draw()};
+    d.querySelector(".x").onclick=()=>{if(S.cats.length>1){S.cats.splice(i,1);renderCats();draw();newQ()}};
+    box.appendChild(d);
+  });
+}
+$("addCat").onclick=()=>{if(S.cats.length<8){S.cats.push(["New",2]);renderCats();draw();newQ()}};
+
+function renderKeys(){
+  const seg=$("keySeg");seg.innerHTML="";
+  KEYS.forEach(k=>{const b=document.createElement("button");b.type="button";b.textContent=k==="other"?"?":k;
+    b.setAttribute("aria-pressed",S.key===k);b.onclick=()=>{S.key=k;$("customRow").hidden=k!=="other";renderKeys();draw();newQ()};seg.appendChild(b)});
+}
+$("kval").oninput=()=>{draw();newQ()};
+$("halves").onchange=()=>{draw();newQ()};
+
+let curTab="🍎";
+function renderEmojis(){
+  $("pickCur").textContent=S.emoji;
+  const tabs=$("tabs");tabs.innerHTML="";
+  Object.keys(EMOJI_SETS).forEach(t=>{const b=document.createElement("button");b.type="button";b.role="tab";b.textContent=t;b.setAttribute("aria-selected",t===curTab);b.onclick=()=>{curTab=t;renderEmojis()};tabs.appendChild(b)});
+  const box=$("emojis");box.innerHTML="";
+  [...new Intl.Segmenter().segment(EMOJI_SETS[curTab])].map(s=>s.segment).forEach(e=>{const b=document.createElement("button");b.type="button";b.textContent=e;b.setAttribute("aria-pressed",S.emoji===e);
+    b.onclick=()=>{S.emoji=e;closePop();renderEmojis();draw()};box.appendChild(b)});
+}
+function closePop(){$("pop").hidden=true;$("pickBtn").setAttribute("aria-expanded","false")}
+$("pickBtn").onclick=e=>{e.stopPropagation();const open=$("pop").hidden;$("pop").hidden=!open;$("pickBtn").setAttribute("aria-expanded",open)};
+$("pop").onclick=e=>e.stopPropagation();
+document.addEventListener("click",closePop);
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closePop()});
+
+// pictures for a value: returns {full, half, exact}
+function pics(v){
+  const k=keyVal(),halves=$("halves").checked;
+  const r=v/k, full=Math.floor(r), rem=v-full*k;
+  if(rem===0)return{full,half:false,exact:true};
+  if(halves&&rem*2===k)return{full,half:true,exact:true};
+  return{full,half:false,exact:false};
+}
+const fmt=n=>Number.isInteger(n)?n:n.toFixed(1);
+
+function draw(){
+  $("gTitle").textContent=$("title").value||"My Picture Graph";
+  $("gX").textContent=$("xl").value;$("gY").textContent=$("yl").value;
+  const k=keyVal(),cols=$("cols"),xc=$("xcats");cols.innerHTML="";xc.innerHTML="";
+  const maxP=Math.max(1,...S.cats.map(c=>Math.ceil(c[1]/k)));
+  const sz=maxP>12?Math.max(1.1,2.1*12/maxP)+"rem":"2.1rem";
+  const bad=[];
+  S.cats.forEach((c,i)=>{
+    const p=pics(c[1]);if(!p.exact)bad.push(c[0]);
+    const col=document.createElement("div");col.className="col";col.style.setProperty("--sz",sz);
+    col.tabIndex=0;col.setAttribute("role","button");col.setAttribute("aria-label",`${c[0]}: ${c[1]}`);
+    if($("showNum").checked){const n=document.createElement("span");n.className="count";n.textContent=c[1];col.appendChild(n)}
+    for(let j=0;j<p.full;j++){const s=document.createElement("span");s.className="sym";s.style.animationDelay=j*40+"ms";s.textContent=S.emoji;col.appendChild(s)}
+    if(p.half){const s=document.createElement("span");s.className="sym half";s.textContent=S.emoji;col.appendChild(s)}
+    const explain=()=>{document.querySelectorAll(".col").forEach(x=>x.classList.remove("sel"));col.classList.add("sel");
+      let t=`${c[0]}: ${p.full} whole picture${p.full===1?"":"s"}`;
+      if(p.half)t+=` and 1 half picture`;
+      t+=k===1?` → <b>${c[1]}</b>`:` → ${p.full} × ${k}${p.half?` + ${fmt(k/2)}`:""} = <b>${c[1]}</b>`;
+      if(!p.exact)t=`${c[0]} is ${c[1]}, but that cannot be shown exactly with this key. Try another key!`;
+      $("say").innerHTML="🔍 "+t};
+    col.onclick=explain;col.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();explain()}};
+    cols.appendChild(col);
+    const lab=document.createElement("div");lab.textContent=c[0];xc.appendChild(lab);
+  });
+  let kt=`<span class="sym">${S.emoji}</span> stands for <b>${k}</b>`;
+  $("key").innerHTML="Key: "+kt;
+  const hint=!$("halves").checked||k%2?"":" Half pictures need an even key.";
+  $("warn").textContent=bad.length?`⚠️ ${bad.join(", ")} cannot be drawn exactly. Pick numbers that fit the key.`+(k%2&&$("halves").checked?" (Half pictures only work when the key is an even number.)":""):"";
+}
+["title","xl","yl","showNum"].forEach(id=>$(id).addEventListener("input",draw));
+$("showNum").onchange=draw;
+$("randomise").onclick=()=>{const k=keyVal(),step=$("halves").checked&&k%2===0?k/2:k;
+  S.cats.forEach(c=>c[1]=step*(1+Math.floor(Math.random()*(k===1?9:8))));renderCats();draw();newQ()};
+
+// ---------- Graph Detective ----------
+// Bank is rebuilt whenever the graph changes. A question is mastered only when checked correct
+// without first revealing the answer. Skipped, wrong or revealed questions go back into the pool.
+const Z={bank:[],pending:[],mastered:new Set(),cur:null,answered:false,pick:null,last:null};
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function picLine(c){
+  const k=keyVal(),p=pics(c[1]);
+  const words=`There ${p.full===1?"is":"are"} ${p.full} picture${p.full===1?"":"s"}${p.half?" and a half picture":""} for ${c[0]}.`;
+  if(k===1)return{words,eq:`${p.full} pictures = ${c[1]}`};
+  return{words:words+` Each picture stands for ${k}.`,eq:`${p.full} × ${k}${p.half?" + "+(k/2):""} = ${c[1]}`};
+}
+function buildBank(){
+  const c=S.cats.filter(x=>pics(x[1]).exact),bank=[];
+  if(c.length<2)return bank;
+  c.forEach(a=>{const pl=picLine(a);bank.push({id:"r:"+a[0],text:`What number does the graph show for ${a[0]}?`,ans:a[1],why:pl.words,eqs:[pl.eq]})});
+  const sorted=[...c].sort((x,y)=>y[1]-x[1]);
+  if(sorted[0][1]!==sorted[1][1])bank.push({id:"most",text:"Which has the MOST?",choice:sorted[0][0],opts:c.map(x=>x[0]),why:`${sorted[0][0]} has the tallest column. The number for ${sorted[0][0]} is ${sorted[0][1]}, which is more than the number for any other category.`,eqs:[]});
+  const lo=sorted.at(-1),lo2=sorted.at(-2);
+  if(lo[1]!==lo2[1])bank.push({id:"least",text:"Which has the LEAST?",choice:lo[0],opts:c.map(x=>x[0]),why:`${lo[0]} has the shortest column. The number for ${lo[0]} is ${lo[1]}, which is less than the number for any other category.`,eqs:[]});
+  for(let i=0;i<c.length;i++)for(let j=i+1;j<c.length;j++){
+    const [h,l]=c[i][1]>=c[j][1]?[c[i],c[j]]:[c[j],c[i]];
+    if(h[1]!==l[1]){
+      const why=`The number for ${h[0]} is ${h[1]}. The number for ${l[0]} is ${l[1]}. Subtract the smaller number from the bigger number to find the DIFFERENCE.`;
+      bank.push({id:`m:${h[0]}|${l[0]}`,text:`How much more is the number for ${h[0]} than the number for ${l[0]}?`,ans:h[1]-l[1],why,eqs:[`${h[1]} − ${l[1]} = ${h[1]-l[1]}`]});
+      bank.push({id:`l:${l[0]}|${h[0]}`,text:`How much less is the number for ${l[0]} than the number for ${h[0]}?`,ans:h[1]-l[1],why,eqs:[`${h[1]} − ${l[1]} = ${h[1]-l[1]}`]});
+    }
+    bank.push({id:`t:${c[i][0]}|${c[j][0]}`,text:`What is the total for ${c[i][0]} and ${c[j][0]}?`,ans:c[i][1]+c[j][1],why:`The number for ${c[i][0]} is ${c[i][1]}. The number for ${c[j][0]} is ${c[j][1]}. Add the two numbers to find the TOTAL.`,eqs:[`${c[i][1]} + ${c[j][1]} = ${c[i][1]+c[j][1]}`]});
+  }
+  const sum=c.reduce((s,x)=>s+x[1],0);
+  bank.push({id:"tall",text:`What is the total for all ${c.length} categories?`,ans:sum,why:"Add the numbers for all the categories to find the TOTAL.",eqs:[c.map(x=>x[1]).join(" + ")+" = "+sum]});
+  return bank;
+}
+function newQ(){ // graph changed: rebuild and restart the cycle
+  Z.bank=buildBank();Z.mastered=new Set();Z.pending=shuffle(Z.bank.map(q=>q.id));Z.last=null;nextQ();
+}
+function progress(){
+  const n=Z.bank.length,m=Z.mastered.size;
+  $("prog").textContent=n?`✅ ${m} / ${n} solved`:"";
+  $("barFill").style.width=n?(m/n*100)+"%":"0";
+}
+function nextQ(){
+  $("fb").textContent="";$("fb").className="fb";$("explain").hidden=true;$("qans").value="";$("qchoices").innerHTML="";
+  Z.answered=false;Z.pick=null;progress();
+  const live=["qinput","qbtns"];
+  if(!Z.bank.length){Z.cur=null;$("qtext").textContent="Add at least two categories that fit the key to get questions.";live.forEach(i=>$(i).hidden=true);return}
+  if(!Z.pending.length){Z.cur=null;live.forEach(i=>$(i).hidden=true);
+    $("qtext").innerHTML=`<div class="done">🏆 Super detective! You answered all ${Z.bank.length} questions correctly!<br><button type="button" class="primary" id="again" style="margin-top:10px">🔁 Play again</button></div>`;
+    $("again").onclick=newQ;return}
+  live.forEach(i=>$(i).hidden=false);
+  // random pick, avoiding an immediate repeat when possible
+  let pool=Z.pending.filter(id=>id!==Z.last);if(!pool.length)pool=Z.pending;
+  const id=pool[Math.floor(Math.random()*pool.length)];
+  Z.cur=Z.bank.find(q=>q.id===id);Z.last=id;
+  const q=Z.cur;$("qtext").textContent=q.text;$("qans").hidden=!!q.choice;
+  if(q.choice)q.opts.forEach(o=>{const b=document.createElement("button");b.type="button";b.className="choice";b.textContent=o;b.setAttribute("aria-pressed","false");
+    b.onclick=()=>{if(Z.answered)return;Z.pick=o;document.querySelectorAll(".choice").forEach(x=>x.setAttribute("aria-pressed",x===b))};$("qchoices").appendChild(b)});
+  else $("qans").focus({preventScroll:true});
+}
+function explain(){
+  const q=Z.cur,ans=q.choice??q.ans;
+  $("explain").innerHTML=`<div><b>Answer: ${ans}</b></div><div>${q.why}</div>`+q.eqs.map(e=>`<div class="eq">${e}</div>`).join("");
+  $("explain").hidden=false;
+}
+$("qcheck").onclick=()=>{
+  const q=Z.cur;if(!q||Z.answered)return;
+  let ok;
+  if(q.choice){if(!Z.pick){$("fb").className="fb no";$("fb").textContent="Tap an answer first.";return}ok=Z.pick===q.choice}
+  else{const v=parseFloat($("qans").value);if(isNaN(v)){$("fb").className="fb no";$("fb").textContent="Type a number first.";return}ok=v===q.ans}
+  if(ok){Z.answered=true;Z.mastered.add(q.id);Z.pending=Z.pending.filter(i=>i!==q.id);
+    $("fb").className="fb ok";$("fb").textContent="🎉 Correct! Great detective work!";explain();progress()}
+  else{$("fb").className="fb no";$("fb").textContent="Not quite. Check the pictures and the key, then try again. This question will come back later."}
+};
+$("qshow").onclick=()=>{if(!Z.cur)return;Z.answered=true;$("fb").className="fb";$("fb").textContent="Here is how to work it out. You will see this question again.";explain()};
+$("qans").onkeydown=e=>{if(e.key==="Enter")$("qcheck").click()};
+$("qnext").onclick=nextQ;
+$("builder").onsubmit=e=>e.preventDefault();
+
+renderCats();renderKeys();renderEmojis();draw();newQ();
+</script>
+</body>
+</html>
